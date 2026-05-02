@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosaic QR Code Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: sans-serif; max-width: 960px; margin: 0 auto; padding: 20px; }
+        h1 { margin-bottom: 24px; }
+        .controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+        .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
+        label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; }
+        label span { font-weight: 400; color: #555; font-size: 12px; }
+        input[type=text] { padding: 8px; font-size: 15px; width: 360px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type=number] { padding: 8px; font-size: 14px; width: 100px; border: 1px solid #ccc; border-radius: 4px; }
+        select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type=file] { font-size: 14px; }
+        .slider-row { display: flex; align-items: center; gap: 8px; }
+        input[type=range] { width: 180px; }
+        .slider-val { min-width: 36px; font-size: 14px; }
+        button.primary { padding: 10px 28px; font-size: 16px; cursor: pointer; background: #1a1a1a; color: white; border: none; border-radius: 6px; }
+        button.primary:hover { background: #333; }
+        button.primary:disabled { background: #888; cursor: not-allowed; }
+        button.secondary { padding: 8px 20px; font-size: 14px; cursor: pointer; background: white; color: #1a1a1a; border: 1px solid #1a1a1a; border-radius: 6px; }
+        button.secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+        input[type=color] { width: 44px; height: 34px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: none; }
+        #preview-wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+        #imagePreview { max-width: 160px; max-height: 160px; display: none; border: 1px solid #ccc; }
+        #canvas { max-width: 100%; border: 1px solid #ddd; display: none; }
+        #status { font-size: 14px; color: #555; min-height: 20px; }
+        .output-area { display: flex; flex-direction: column; gap: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Mosaic QR Code Generator</h1>
+
+    <div class="controls">
+        <div class="row" style="align-items:center; gap:24px; margin-bottom:4px;">
+            <label style="flex-direction:row; gap:8px; align-items:center; font-weight:400;">
+                <input type="radio" name="dataType" id="typeURL" value="url" checked>
+                URL
+            </label>
+            <label style="flex-direction:row; gap:8px; align-items:center; font-weight:400;">
+                <input type="radio" name="dataType" id="typeVCard" value="vcard">
+                Business Card (vCard)
+            </label>
+        </div>
+
+        <div id="urlSection">
+            <label>
+                URL to encode
+                <input type="text" id="url" placeholder="https://example.com" value="https://tlagraphics.ca/">
+            </label>
+        </div>
+
+        <div id="vcardSection" style="display:none;">
+            <div class="row">
+                <label>
+                    First Name
+                    <input type="text" id="vcFN" placeholder="Jane" style="width:180px;">
+                </label>
+                <label>
+                    Last Name
+                    <input type="text" id="vcLN" placeholder="Smith" style="width:180px;">
+                </label>
+            </div>
+            <div class="row" style="margin-top:8px;">
+                <label>
+                    Organization
+                    <input type="text" id="vcOrg" placeholder="Acme Corp" style="width:240px;">
+                </label>
+                <label>
+                    Title / Position
+                    <input type="text" id="vcTitle" placeholder="Designer" style="width:200px;">
+                </label>
+            </div>
+            <div style="margin-top:8px;">
+                <label>
+                    Street Address
+                    <input type="text" id="vcStreet" placeholder="123 Main St" style="width:360px;">
+                </label>
+            </div>
+            <div class="row" style="margin-top:8px;">
+                <label>
+                    City
+                    <input type="text" id="vcCity" placeholder="Toronto" style="width:160px;">
+                </label>
+                <label>
+                    Province / State
+                    <input type="text" id="vcProvince" placeholder="ON" style="width:80px;">
+                </label>
+                <label>
+                    Postal / ZIP Code
+                    <input type="text" id="vcPostal" placeholder="M5V 2T6" style="width:120px;">
+                </label>
+                <label>
+                    Country
+                    <input type="text" id="vcCountry" placeholder="Canada" style="width:120px;">
+                </label>
+            </div>
+            <div class="row" style="margin-top:8px;">
+                <label>
+                    Cell Phone
+                    <input type="text" id="vcCell" placeholder="+1-416-555-0100" style="width:200px;">
+                </label>
+                <label>
+                    Work Phone
+                    <input type="text" id="vcWork" placeholder="+1-416-555-0200" style="width:200px;">
+                </label>
+            </div>
+            <div class="row" style="margin-top:8px;">
+                <label>
+                    Email
+                    <input type="text" id="vcEmail" placeholder="jane@example.com" style="width:260px;">
+                </label>
+                <label>
+                    Website URL
+                    <input type="text" id="vcURL" placeholder="https://example.com" style="width:260px;">
+                </label>
+            </div>
+        </div>
+
+        <label>
+            Source image
+            <span>The image brightness modulates each dot's size in the QR code</span>
+            <input type="file" id="imageInput" accept="image/*">
+        </label>
+
+        <div class="row">
+            <label>
+                Output size
+                <input type="number" id="size" value="1000" min="400" max="4000" step="100">
+            </label>
+
+            <label>
+                Error correction
+                <span>H = 30% recovery (best for image QR)</span>
+                <select id="errorLevel">
+                    <option value="H" selected>H – 30%</option>
+                    <option value="Q">Q – 25%</option>
+                    <option value="M">M – 15%</option>
+                    <option value="L">L – 7%</option>
+                </select>
+            </label>
+        </div>
+
+        <label>
+            QR Version (dot density)
+            <span>Higher version = more dots, smaller finder squares relative to image. Sample ≈ version 14 (73×73)</span>
+            <div class="slider-row">
+                <input type="range" id="version" min="1" max="40" value="14">
+                <span class="slider-val" id="versionVal">14 &nbsp;(73×73 modules)</span>
+            </div>
+        </label>
+
+        <div class="row">
+            <label>
+                Min dot size
+                <span>Smallest dot for lightest image areas (% of cell)</span>
+                <div class="slider-row">
+                    <input type="range" id="minDot" min="5" max="45" value="18">
+                    <span class="slider-val" id="minDotVal">18%</span>
+                </div>
+            </label>
+
+            <label>
+                Contrast
+                <span>Boost contrast before mapping to dot sizes</span>
+                <div class="slider-row">
+                    <input type="range" id="contrast" min="-100" max="100" value="30">
+                    <span class="slider-val" id="contrastVal">+30</span>
+                </div>
+            </label>
+        </div>
+
+        <label style="flex-direction:row; gap:8px; align-items:center; font-weight:400;">
+            <input type="checkbox" id="autoLevels" checked>
+            Auto-levels (stretch image histogram to full range)
+        </label>
+
+        <label style="flex-direction:row; gap:8px; align-items:center; font-weight:400;">
+            <input type="checkbox" id="uniformDots">
+            Uniform dot size <span style="color:#888;">(all dots drawn; size varies in a narrower range so image is visible but dots look similar — tune with Min dot size)</span>
+        </label>
+
+
+        <div class="row" style="align-items:center;">
+            <label style="flex-direction:row; gap:8px; align-items:center;">
+                Dot color
+                <input type="color" id="dotColor" value="#000000">
+            </label>
+            <label style="flex-direction:row; gap:8px; align-items:center;">
+                Background color
+                <input type="color" id="bgColor" value="#ffffff">
+            </label>
+        </div>
+
+        <div class="row">
+            <button class="primary" id="generate">Generate QR Code</button>
+        </div>
+    </div>
+
+    <div id="preview-wrap">
+        <img id="imagePreview" alt="Source image preview">
+    </div>
+
+    <div class="output-area">
+        <div id="status"></div>
+        <canvas id="canvas"></canvas>
+        <div>
+            <button class="secondary" id="download" disabled>Download PNG</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Data type toggle ---
+        document.querySelectorAll('input[name="dataType"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isVCard = document.getElementById('typeVCard').checked;
+                document.getElementById('urlSection').style.display  = isVCard ? 'none' : 'block';
+                document.getElementById('vcardSection').style.display = isVCard ? 'block' : 'none';
+            });
+        });
+
+        // --- Slider displays ---
+        const minDotSlider = document.getElementById('minDot');
+        const contrastSlider = document.getElementById('contrast');
+        const versionSlider = document.getElementById('version');
+        minDotSlider.addEventListener('input', () => {
+            document.getElementById('minDotVal').textContent = minDotSlider.value + '%';
+        });
+        contrastSlider.addEventListener('input', () => {
+            const v = parseInt(contrastSlider.value);
+            document.getElementById('contrastVal').textContent = (v >= 0 ? '+' : '') + v;
+        });
+        versionSlider.addEventListener('input', () => {
+            const v = parseInt(versionSlider.value);
+            const m = 4 * v + 17;
+            document.getElementById('versionVal').textContent = `${v}  (${m}×${m} modules)`;
+        });
+
+
+        // --- Image preview ---
+        document.getElementById('imageInput').addEventListener('change', function () {
+            if (this.files[0]) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = URL.createObjectURL(this.files[0]);
+                preview.style.display = 'block';
+            }
+        });
+
+        document.getElementById('generate').addEventListener('click', generate);
+        document.getElementById('download').addEventListener('click', downloadQR);
+
+        // --- Alignment pattern center positions (QR spec Table E.1) ---
+        const ALIGN_TABLE = {
+            2:[6,18], 3:[6,22], 4:[6,26], 5:[6,30], 6:[6,34],
+            7:[6,22,38], 8:[6,24,42], 9:[6,26,46], 10:[6,28,50],
+            11:[6,30,54], 12:[6,32,58], 13:[6,34,62], 14:[6,26,46,66],
+            15:[6,26,48,70], 16:[6,26,50,74], 17:[6,30,54,78],
+            18:[6,30,56,82], 19:[6,30,58,86], 20:[6,34,62,90],
+            21:[6,28,50,72,94], 22:[6,26,50,74,98], 23:[6,30,54,78,102],
+            24:[6,28,54,80,106], 25:[6,32,58,84,110], 26:[6,30,58,86,114],
+            27:[6,34,62,90,118], 28:[6,26,50,74,98,122], 29:[6,30,54,78,102,126],
+            30:[6,26,52,78,104,130], 31:[6,30,56,82,108,134],
+            32:[6,34,60,86,112,138], 33:[6,30,58,86,114,142],
+            34:[6,34,62,90,118,146], 35:[6,30,54,78,102,126,150],
+            36:[6,24,50,76,102,128,154], 37:[6,28,54,80,106,132,158],
+            38:[6,32,58,84,110,136,162], 39:[6,26,54,82,110,138,166],
+            40:[6,30,58,86,114,142,170],
+        };
+
+        // Build a map of which modules are "functional" (finder, alignment, format, version).
+        // Functional modules are always rendered at full dot size for scannability.
+        // Timing patterns (row 6 / col 6) are intentionally excluded so the image can
+        // modulate their size — otherwise they produce a visible line across white areas.
+        function buildFunctionalMap(n) {
+            const version = (n - 17) / 4;
+            const func = new Uint8Array(n * n);
+
+            const mark = (r, c) => { if (r >= 0 && r < n && c >= 0 && c < n) func[r * n + c] = 1; };
+
+            // Top-left:    rows 0-8, cols 0-8   (finder 7×7 + separator + format info L)
+            for (let r = 0; r <= 8; r++)
+                for (let c = 0; c <= 8; c++)
+                    mark(r, c);
+
+            // Top-right:   rows 0-8, cols n-8 to n-1   (8 cols, NOT n-9)
+            for (let r = 0; r <= 8; r++)
+                for (let c = n - 8; c < n; c++)
+                    mark(r, c);
+
+            // Bottom-left: rows n-8 to n-1, cols 0-8   (8 rows, NOT n-9)
+            for (let r = n - 8; r < n; r++)
+                for (let c = 0; c <= 8; c++)
+                    mark(r, c);
+
+            // Dark module
+            mark(4 * version + 9, 8);
+
+            // Alignment patterns
+            const aligns = ALIGN_TABLE[version] || [];
+            for (const ar of aligns) {
+                for (const ac of aligns) {
+                    if (func[ar * n + ac]) continue; // overlaps finder/timing, skip
+                    for (let dr = -2; dr <= 2; dr++)
+                        for (let dc = -2; dc <= 2; dc++)
+                            mark(ar + dr, ac + dc);
+                }
+            }
+
+            // Version info blocks (version >= 7): 6×3 strips
+            if (version >= 7) {
+                for (let i = 0; i < 6; i++) {
+                    for (let j = n - 11; j <= n - 9; j++) {
+                        mark(i, j);
+                        mark(j, i);
+                    }
+                }
+            }
+
+            return func;
+        }
+
+        function buildVCard() {
+            const fn = document.getElementById('vcFN').value.trim();
+            const ln = document.getElementById('vcLN').value.trim();
+            const org = document.getElementById('vcOrg').value.trim();
+            const title = document.getElementById('vcTitle').value.trim();
+            const street = document.getElementById('vcStreet').value.trim();
+            const city = document.getElementById('vcCity').value.trim();
+            const province = document.getElementById('vcProvince').value.trim();
+            const postal = document.getElementById('vcPostal').value.trim();
+            const country = document.getElementById('vcCountry').value.trim();
+            const cell = document.getElementById('vcCell').value.trim();
+            const work = document.getElementById('vcWork').value.trim();
+            const email = document.getElementById('vcEmail').value.trim();
+            const url = document.getElementById('vcURL').value.trim();
+
+            const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+            lines.push(`N:${ln};${fn};;;`);
+            lines.push(`FN:${[fn, ln].filter(Boolean).join(' ')}`);
+            if (org)     lines.push(`ORG:${org}`);
+            if (title)   lines.push(`TITLE:${title}`);
+            if (street || city || province || postal || country)
+                lines.push(`ADR;TYPE=WORK:;;${street};${city};${province};${postal};${country}`);
+            if (cell)    lines.push(`TEL;TYPE=CELL:${cell}`);
+            if (work)    lines.push(`TEL;TYPE=WORK:${work}`);
+            if (email)   lines.push(`EMAIL:${email}`);
+            if (url)     lines.push(`URL:${url}`);
+            lines.push('END:VCARD');
+            return lines.join('\r\n');
+        }
+
+        async function generate() {
+            const isVCard = document.getElementById('typeVCard').checked;
+            let dataToEncode;
+            if (isVCard) {
+                dataToEncode = buildVCard();
+                if (!dataToEncode.includes('FN:') || dataToEncode.includes('FN:\r')) {
+                    alert('Please enter at least a first or last name.');
+                    return;
+                }
+            } else {
+                dataToEncode = document.getElementById('url').value.trim();
+                if (!dataToEncode) { alert('Please enter a URL'); return; }
+            }
+
+            const imageFile = document.getElementById('imageInput').files[0];
+            const outputSize = parseInt(document.getElementById('size').value);
+            const minDotPct = parseInt(document.getElementById('minDot').value) / 100;
+            const contrastVal = parseInt(document.getElementById('contrast').value);
+            const autoLevels = document.getElementById('autoLevels').checked;
+const uniformDots = document.getElementById('uniformDots').checked;
+            const errorLevel = document.getElementById('errorLevel').value;
+            const qrVersion = parseInt(document.getElementById('version').value);
+
+            if (!imageFile) { alert('Please select an image'); return; }
+
+            const btn = document.getElementById('generate');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            btn.textContent = 'Generating…';
+            status.textContent = '';
+
+            try {
+                // Build QR code matrix.
+                // typeNumber 0 = auto; passing the chosen version forces that density.
+                // If the URL is too long for the chosen version the library throws.
+                let qr;
+                try {
+                    qr = qrcode(qrVersion, errorLevel);
+                    qr.addData(dataToEncode);
+                    qr.make();
+                } catch (e) {
+                    // Chosen version too small — fall back to auto
+                    status.textContent = `Version ${qrVersion} too small — using minimum required version.`;
+                    qr = qrcode(0, errorLevel);
+                    qr.addData(dataToEncode);
+                    qr.make();
+                }
+
+                const n = qr.getModuleCount();
+                const funcMap = buildFunctionalMap(n);
+
+                // Load image and compute per-cell brightness
+                const img = await loadImage(imageFile);
+                const brightness = getResizedBrightness(img, n, contrastVal, autoLevels);
+
+                // Render
+                const QUIET = 4;
+                const total = n + QUIET * 2;
+                const cellSize = outputSize / total;
+                const maxR    = cellSize * 0.5;
+                const uniformR = cellSize * 0.46;
+                // In uniform mode the minimum dot is larger than mosaic's minDot so that
+                // even light-image dots look like clear dots (not specks). Floor at 40% of uniformR.
+                const minR = uniformDots
+                    ? Math.max(cellSize * minDotPct * 0.5, uniformR * 0.40)
+                    : cellSize * minDotPct * 0.5;
+                const upperR = uniformDots ? uniformR : maxR;
+
+                const canvas = document.getElementById('canvas');
+                canvas.width = outputSize;
+                canvas.height = outputSize;
+                canvas.style.display = 'block';
+                const ctx = canvas.getContext('2d');
+
+                const dotColor = document.getElementById('dotColor').value;
+                const bgColor  = document.getElementById('bgColor').value;
+
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, outputSize, outputSize);
+                ctx.fillStyle = dotColor;
+
+                for (let row = 0; row < n; row++) {
+                    for (let col = 0; col < n; col++) {
+                        if (!qr.isDark(row, col)) continue;
+
+                        const lum = brightness[row * n + col];
+                        const isFunctional = funcMap[row * n + col];
+
+                        // Functional modules (finders, alignment, format info) always full size.
+                        // Data modules: size tracks image brightness — dark image → large dot,
+                        // light image → smaller dot. Both modes use the same formula; they differ
+                        // only in their upper bound (uniformR vs maxR) and effective minimum.
+                        const radius = isFunctional
+                            ? upperR
+                            : minR + (1 - lum / 255) * (upperR - minR);
+
+                        const cx = (QUIET + col + 0.5) * cellSize;
+                        const cy = (QUIET + row + 0.5) * cellSize;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                document.getElementById('download').disabled = false;
+                status.textContent = `Generated: QR version ${(n - 17) / 4}, ${n}×${n} modules, error correction ${errorLevel}`;
+
+            } catch (err) {
+                status.textContent = 'Error: ' + err.message;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate QR Code';
+            }
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function getResizedBrightness(img, size, contrastAmount, autoLevels) {
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const ctx = c.getContext('2d');
+
+            // Center-crop to square before scaling
+            const sw = img.naturalWidth, sh = img.naturalHeight;
+            const sq = Math.min(sw, sh);
+            const sx = (sw - sq) / 2, sy = (sh - sq) / 2;
+            ctx.drawImage(img, sx, sy, sq, sq, 0, 0, size, size);
+
+            const data = ctx.getImageData(0, 0, size, size).data;
+            const out = new Float32Array(size * size);
+
+            // Composite each pixel over a white background so that transparent areas
+            // become luminance 255 (bright) rather than 0 (black). This makes
+            // transparent regions behave as "background" for both mosaic and threshold modes.
+            for (let i = 0; i < size * size; i++) {
+                const a = data[i * 4 + 3] / 255;
+                const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+                const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                out[i] = lum * a + 255 * (1 - a); // blend over white
+            }
+
+            // Auto-levels: stretch min→max to 0→255
+            if (autoLevels) {
+                let lo = 255, hi = 0;
+                for (let i = 0; i < out.length; i++) { lo = Math.min(lo, out[i]); hi = Math.max(hi, out[i]); }
+                const span = hi - lo || 1;
+                for (let i = 0; i < out.length; i++) out[i] = (out[i] - lo) / span * 255;
+            }
+
+            // Contrast adjustment using standard formula
+            if (contrastAmount !== 0) {
+                const factor = (259 * (contrastAmount + 255)) / (255 * (259 - contrastAmount));
+                for (let i = 0; i < out.length; i++) {
+                    out[i] = Math.max(0, Math.min(255, factor * (out[i] - 128) + 128));
+                }
+            }
+
+            return out;
+        }
+
+        function downloadQR() {
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = document.getElementById('typeVCard').checked ? 'vcard-qr.png' : 'mosaic-qr.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
